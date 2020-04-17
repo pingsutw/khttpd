@@ -2,6 +2,7 @@ KDIR=/lib/modules/$(shell uname -r)/build
 
 CFLAGS_user = -std=gnu11 -Wall -Wextra -Werror
 LDFLAGS_user = -lpthread
+TARGET_MODULE := khttpd
 
 obj-m += khttpd.o
 khttpd-objs := \
@@ -26,6 +27,12 @@ check: all
 clean:
 	make -C $(KDIR) M=$(PWD) clean
 	$(RM) htstress
+
+load:
+	sudo insmod $(TARGET_MODULE).ko port=1999
+
+unload:
+	sudo rmmod $(TARGET_MODULE)
 
 # Download http_parser.[ch] from nodejs/http-parser repository
 # the inclusion of standard header files such as <string.h> will be replaced
