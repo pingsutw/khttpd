@@ -3,15 +3,17 @@ KDIR=/lib/modules/$(shell uname -r)/build
 CFLAGS_user = -std=gnu11 -Wall -Wextra -Werror
 LDFLAGS_user = -lpthread
 TARGET_MODULE := khttpd
+ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 obj-m += khttpd.o
 khttpd-objs := \
 	http_parser.o \
 	http_server.o \
+	bignum.o \
 	main.o
 
 GIT_HOOKS := .git/hooks/applied
-all: $(GIT_HOOKS) http_parser.c htstress
+all: $(GIT_HOOKS) http_parser.c htstress bignum.h
 	make -C $(KDIR) M=$(PWD) modules
 
 $(GIT_HOOKS):
@@ -34,6 +36,11 @@ load:
 unload:
 	sudo rmmod $(TARGET_MODULE)
 
+reload:
+	sudo rmmod $(TARGET_MODULE)
+	sudo insmod $(TARGET_MODULE).ko port=1999
+	
+
 # Download http_parser.[ch] from nodejs/http-parser repository
 # the inclusion of standard header files such as <string.h> will be replaced
 # with "compat/string.h", which is just a wrapper to Linux kernel headers.
@@ -52,4 +59,4 @@ http_parser.c:
 	@echo "File http_parser.h was patched."
 
 distclean: clean
-	$(RM) http_parser.c http_parser.h
+	$(RM) http_parser.c http_parser.h bignum.h

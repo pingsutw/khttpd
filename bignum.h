@@ -54,19 +54,19 @@ static inline unsigned long long bn_capacity(bn *a)
     } while (0)
 
 /* retrun non-zero if a is greater than b */
-static inline int bn_greater(bn *a, bn *b)
-{
-#define SIGN_BIT 1ull << (BITS - 1)
-    if ((bn_size(a) > bn_size(b)))
-        return 1;
-    for (int i = bn_size(a) - 1; i > -1; i--) {
-        if (a->ptr[i] == b->ptr[i])
-            continue;
-        return (b->ptr[i] - a->ptr[i]) & SIGN_BIT;
-    }
-    return 0;
-#undef SIGN_BIT
-}
+// static inline int bn_greater(bn *a, bn *b)
+// {
+// #define SIGN_BIT 1ull << (BITS - 1)
+//     if ((bn_size(a) > bn_size(b)))
+//         return 1;
+//     for (int i = bn_size(a) - 1; i > -1; i--) {
+//         if (a->ptr[i] == b->ptr[i])
+//             continue;
+//         return (b->ptr[i] - a->ptr[i]) & SIGN_BIT;
+//     }
+//     return 0;
+// #undef SIGN_BIT
+// }
 
 #define MAX(a, b)         \
     ({                    \
@@ -177,32 +177,32 @@ static inline void bn_sll(bn *result, bn *a, unsigned long long sha)
         ;
 }
 
-static inline void bn_srl(bn *result, bn *a, unsigned long long sha)
-{
-    /* quot = sha / BITS (bits) */
-    unsigned long long quot = sha >> BITS_TZ;
-    unsigned long long rem = sha & (BITS - 1);
-    const unsigned long long mask = (1 << rem) - 1;
-    unsigned long long newsize =
-        bn_size(a) - quot - (rem >= __builtin_clzll(a->ptr[bn_size(a) - 1]));
+// static inline void bn_srl(bn *result, bn *a, unsigned long long sha)
+// {
+//     /* quot = sha / BITS (bits) */
+//     unsigned long long quot = sha >> BITS_TZ;
+//     unsigned long long rem = sha & (BITS - 1);
+//     const unsigned long long mask = (1 << rem) - 1;
+//     unsigned long long newsize =
+//         bn_size(a) - quot - (rem >= __builtin_clzll(a->ptr[bn_size(a) - 1]));
 
-    if (bn_capacity(result) < newsize)
-        bn_resize(result, newsize);
+//     if (bn_capacity(result) < newsize)
+//         bn_resize(result, newsize);
 
-    result->size = newsize;
+//     result->size = newsize;
 
-    int i = 0;
-    for (; i < bn_size(a) - quot - 1; i++) {
-        /* performance can be improve here */
-        unsigned long long lhs_bits =
-            rem ? (a->ptr[i + quot + 1] & mask) << (BITS - rem) : 0;
-        result->ptr[i] = lhs_bits | (a->ptr[i + quot] >> rem);
-    }
+//     int i = 0;
+//     for (; i < bn_size(a) - quot - 1; i++) {
+//         /* performance can be improve here */
+//         unsigned long long lhs_bits =
+//             rem ? (a->ptr[i + quot + 1] & mask) << (BITS - rem) : 0;
+//         result->ptr[i] = lhs_bits | (a->ptr[i + quot] >> rem);
+//     }
 
-    result->ptr[i++] = a->ptr[bn_size(a) - 1] >> rem;
-    for (; i < newsize; result->ptr[i++] = 0)
-        ;
-}
+//     result->ptr[i++] = a->ptr[bn_size(a) - 1] >> rem;
+//     for (; i < newsize; result->ptr[i++] = 0)
+//         ;
+// }
 
 static inline void bn_free(bn *a)
 {

@@ -9,16 +9,16 @@
 
 #define CRLF "\r\n"
 
-#define HTTP_RESPONSE_200_DUMMY                               \
-    ""                                                        \
-    "HTTP/1.1 200 OK" CRLF "Server: " KBUILD_MODNAME CRLF     \
-    "Content-Type: text/plain" CRLF "Content-Length: 12" CRLF \
-    "Connection: Close" CRLF CRLF "Hello World!" CRLF
-#define HTTP_RESPONSE_200_KEEPALIVE_DUMMY                     \
-    ""                                                        \
-    "HTTP/1.1 200 OK" CRLF "Server: " KBUILD_MODNAME CRLF     \
-    "Content-Type: text/plain" CRLF "Content-Length: 12" CRLF \
-    "Connection: Keep-Alive" CRLF CRLF "Hello World!" CRLF
+#define HTTP_RESPONSE_200                                      \
+    ""                                                         \
+    "HTTP/1.1 200 OK" CRLF "Server: " KBUILD_MODNAME CRLF      \
+    "Content-Type: text/plain" CRLF "Content-Length: %lu" CRLF \
+    "Connection: Close" CRLF CRLF "Fibonacci_number = %s" CRLF
+#define HTTP_RESPONSE_200_KEEPALIVE                            \
+    ""                                                         \
+    "HTTP/1.1 200 OK" CRLF "Server: " KBUILD_MODNAME CRLF      \
+    "Content-Type: text/plain" CRLF "Content-Length: %lu" CRLF \
+    "Connection: Keep-Alive" CRLF CRLF "Fibonacci_number = %s" CRLF
 #define HTTP_RESPONSE_501                                              \
     ""                                                                 \
     "HTTP/1.1 501 Not Implemented" CRLF "Server: " KBUILD_MODNAME CRLF \
@@ -29,6 +29,8 @@
     "HTTP/1.1 501 Not Implemented" CRLF "Server: " KBUILD_MODNAME CRLF \
     "Content-Type: text/plain" CRLF "Content-Length: 21" CRLF          \
     "Connection: KeepAlive" CRLF CRLF "501 Not Implemented" CRLF
+
+#define HELLOW "Hello World!" CRLF
 
 #define RECV_BUFFER_SIZE 4096
 
@@ -73,6 +75,29 @@ static int http_server_send(struct socket *sock, const char *buf, size_t size)
     return done;
 }
 
+static char *parse_url(char *url, int keep_alive)
+{
+    size_t size;
+    char const *del = "/";
+    char *token, *tmp = url, *fib_res = NULL, *res;
+    char *msg = keep_alive ? HTTP_RESPONSE_200_KEEPALIVE : HTTP_RESPONSE_200;
+    tmp++;
+    token = strsep(&tmp, del);
+    if (strcmp(token, "fib") == 0) {
+        /* expected tmp is number now */
+        long k;
+        kstrtol(tmp, 10, &k);
+        fib_res = fib_sequence((unsigned long long) k);
+    }
+    if (!fib_res)
+        return NULL;
+    size = strlen(msg) + strlen(fib_res) + 20;
+    res = kmalloc(size, GFP_KERNEL);
+    snprintf(res, size, msg, strlen(fib_res) + 20, fib_res);
+
+    return res;
+}
+
 static int http_server_response(struct http_request *request, int keep_alive)
 {
     char *response;
@@ -81,9 +106,9 @@ static int http_server_response(struct http_request *request, int keep_alive)
     if (request->method != HTTP_GET)
         response = keep_alive ? HTTP_RESPONSE_501_KEEPALIVE : HTTP_RESPONSE_501;
     else
-        response = keep_alive ? HTTP_RESPONSE_200_KEEPALIVE_DUMMY
-                              : HTTP_RESPONSE_200_DUMMY;
-    http_server_send(request->socket, response, strlen(response));
+        response = parse_url(request->request_url, keep_alive);
+    if (response)
+        http_server_send(request->socket, response, strlen(response));
     return 0;
 }
 
